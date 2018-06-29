@@ -41,6 +41,7 @@ module_param(input_boost_ms, uint, 0644);
 #ifdef CONFIG_DYNAMIC_STUNE_BOOST
 static int dynamic_stune_boost;
 module_param(dynamic_stune_boost, uint, 0644);
+static bool stune_boost_active;
 #endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
 static struct delayed_work input_boost_rem;
@@ -192,7 +193,10 @@ static void do_input_boost_rem(struct work_struct *work)
 
 #ifdef CONFIG_DYNAMIC_STUNE_BOOST
 	/* Reset dynamic stune boost value to the default value */
-	reset_stune_boost("top-app");
+	if (stune_boost_active) {
+		reset_stune_boost("top-app");
+		stune_boost_active = false;
+	}
 #endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
 	/* Update policies for all online CPUs */
@@ -209,6 +213,13 @@ static void do_input_boost(struct work_struct *work)
 
 	cancel_delayed_work_sync(&input_boost_rem);
 
+#ifdef CONFIG_DYNAMIC_STUNE_BOOST
+	if (stune_boost_active) {
+		reset_stune_boost("top-app");
+		stune_boost_active = false;
+	}
+#endif /* CONFIG_DYNAMIC_STUNE_BOOST */
+
 	/* Set the input_boost_min for all CPUs in the system */
 	pr_debug("Setting input boost min for all CPUs\n");
 	for_each_possible_cpu(i) {
@@ -218,11 +229,6 @@ static void do_input_boost(struct work_struct *work)
 
 	/* Update policies for all online CPUs */
 	update_policy_online();
-
-#ifdef CONFIG_DYNAMIC_STUNE_BOOST
-	/* Set dynamic stune boost value */
-	do_stune_boost("top-app", dynamic_stune_boost);
-#endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
 	queue_delayed_work(cpu_boost_wq, &input_boost_rem,
 					msecs_to_jiffies(input_boost_ms));
