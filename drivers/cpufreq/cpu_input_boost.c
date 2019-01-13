@@ -126,9 +126,9 @@ static u32 get_min_freq(struct boost_drv *b, u32 cpu, u32 state)
 	}
 
 	if (cpumask_test_cpu(cpu, cpu_lp_mask))
-		return remove_input_boost_freq_lp;
+		return input_boost_return_freq_lp;
 
-	return remove_input_boost_freq_perf;
+	return input_boost_return_freq_hp;
 }
 
 static u32 get_boost_state(struct boost_drv *b)
@@ -194,10 +194,13 @@ static void unboost_all_cpus(struct boost_drv *b)
 void cpu_input_boost_kick(void)
 {
 	struct boost_drv *b = boost_drv_g;
+    u32 state;
 
 	if (!b)
 		return;
-
+	state = get_boost_state(b);
+	if (!(state & SCREEN_AWAKE))
+		return;
 	queue_work(b->wq, &b->input_boost);
 }
 
@@ -445,7 +448,7 @@ static void cpu_input_boost_input_event(struct input_handle *handle,
 
 	queue_work(b->wq, &b->input_boost);
 
-	last_input_time = jiffies;
+	last_input_jiffies = jiffies;
 }
 
 static int cpu_input_boost_input_connect(struct input_handler *handler,
