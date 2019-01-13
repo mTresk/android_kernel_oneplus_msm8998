@@ -5292,7 +5292,7 @@ int mdss_fb_do_ioctl(struct fb_info *info, unsigned int cmd,
 		break;
 	case MSMFB_ATOMIC_COMMIT:
 		#ifdef CONFIG_CPU_INPUT_BOOST
-			if (time_before(jiffies, last_input_time + msecs_to_jiffies(5000))) {
+			if (time_before(jiffies, last_input_jiffies + msecs_to_jiffies(5000))) {
 				cpu_input_boost_kick();
 				devfreq_boost_kick(DEVFREQ_MSM_CPUBW);	
 			}
